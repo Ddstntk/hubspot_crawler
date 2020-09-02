@@ -4,25 +4,11 @@ from scrapy.linkextractors import LinkExtractor
 import tldextract
 import csv
 
-
-# class TestSpider(scrapy.Spider):
-#     name = "test"
-
-#     start_urls = [
-#         "http://stackoverflow.com/questions/38233614/download-a-full-page-with-scrapy",
-#     ]
-
-
-#     def parse(self, response):
-#         filename = response.url.split("/")[-1] + '.html'
-#         with open(filename, 'wb') as f:
-#             f.write(response.body)
-
-
-class MySpider(CrawlSpider):
+class Spider(CrawlSpider):
     
     custom_settings = {
         'LOG_LEVEL': 'INFO',
+        'DEPTH_LIMIT': 1
     }
 
     counter = 0
@@ -34,12 +20,10 @@ class MySpider(CrawlSpider):
         "!-- Start of HubSpot Analytics Code",
     ]
 
-
-
     name = 'go.everquote.com'
-    allowed_domains = ['everquote.com']
-    start_urls = ['https://go.everquote.com/']
-
+    allowed_domains = None
+    start_urls = None
+    
     rules = (
         # Extract and follow all links!
         Rule(LinkExtractor(allow=()), callback='parse_item', follow=True),
@@ -47,14 +31,24 @@ class MySpider(CrawlSpider):
 
     csv_columns = ["URL", "domain", "subdomain"] + searchPhrases
         
-    with open('outfile.csv', "w") as out_file:   
-        writer = csv.writer(out_file)
-        writer.writerow(csv_columns)   
+    # with open('outfile.csv', "w") as out_file:   
+    #     writer = csv.writer(out_file)
+    #     writer.writerow(csv_columns)   
 
     report = []
 
+    result = []
+
     def parse_item(self, response):
+
         URL = format(response.url) 
+        print(URL)
+        print("XXXXXXXXXXX")
+        # print(self.allowed_domains)
+        print("XXXXXXXXXXX")
+        # print(self.start_urls)
+        print("XXXXXXXXXXX")
+
         row = {}
         extracted = tldextract.extract(URL)
         row["URL"] = URL
@@ -62,16 +56,23 @@ class MySpider(CrawlSpider):
         row["subdomain"] = extracted.subdomain
 
         self.counter = self.counter + 1
-           
-        with open('outfile.csv', "r+") as out_file:   
-            writer = csv.writer(out_file)
-            for searchPhrase in self.searchPhrases: 
-                if searchPhrase in response.body.decode("utf-8"):
-                    row[searchPhrase] = "Y"
-                else:
-                    row[searchPhrase] = "N"
-            
-            
+        # row["No."] = self.counter
 
-            # for key, value in row.items():
-            writer.writerow(row.values())    
+        
+        # with open('outfile.csv', "a") as out_file:   
+            # writer = csv.writer(out_file)
+        for searchPhrase in self.searchPhrases: 
+            if searchPhrase in response.body.decode("utf-8"):
+                row[searchPhrase] = 1
+            else:
+                row[searchPhrase] = 0
+
+        self.result.append(
+            tuple(row.values())
+        )       
+            
+    def getResults(self):
+        return(self.result)
+
+            # # for key, value in row.items():
+            # writer.writerow(row.values())    
